@@ -19,6 +19,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useLoadMoreOnScroll } from '../../hooks/use-load-more-on-scroll';
 import { useReducedMotion } from '../../hooks/use-reduced-motion';
 import { ErrorBoundary } from '../error-boundary';
 import {
@@ -29,6 +30,7 @@ import { useSidebarDataOptional } from '../sidebar/sidebar-data-context';
 import type { Trace } from '../trace-viewer/types';
 import { formatDuration, getHighResInMs } from '../trace-viewer/util/timing';
 import { IconButton } from '../ui/icon-button';
+import { Spinner } from '../ui/spinner';
 import { Kbd } from '../ui/kbd';
 import EventList from './components/event-list';
 import { SplitPane } from './components/split-pane';
@@ -50,6 +52,9 @@ import { computeRootBounds, computeTimeMarkers } from './utils';
 
 interface NewTraceViewerProps {
   trace: Trace;
+  onLoadMore?: () => void | Promise<void>;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 const MIN_VIEWPORT_MS = 0.001;
@@ -159,17 +164,32 @@ function useSelectedSpanInfo(): SelectedSpanInfo | null {
 // Root component
 // ---------------------------------------------------------------------------
 
-export function NewTraceViewer({ trace }: NewTraceViewerProps): ReactNode {
+export function NewTraceViewer({
+  trace,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
+}: NewTraceViewerProps): ReactNode {
   return (
     <TooltipProvider delayDuration={300}>
       <ActiveSpanProvider spans={trace.spans}>
-        <NewTraceViewerContent trace={trace} />
+        <NewTraceViewerContent
+          trace={trace}
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+        />
       </ActiveSpanProvider>
     </TooltipProvider>
   );
 }
 
-function NewTraceViewerContent({ trace }: NewTraceViewerProps): ReactNode {
+function NewTraceViewerContent({
+  trace,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
+}: NewTraceViewerProps): ReactNode {
   const { activeSpan, activeSpanId, setActiveSpan, clearActiveSpan } =
     useActiveSpan();
 
@@ -185,6 +205,16 @@ function NewTraceViewerContent({ trace }: NewTraceViewerProps): ReactNode {
   );
 
   const root = useMemo(() => computeRootBounds(trace.spans), [trace.spans]);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const loadMore = useCallback(() => {
+    void onLoadMore?.();
+  }, [onLoadMore]);
+  const loadMoreSentinelRef = useLoadMoreOnScroll(loadMore, {
+    hasMore: Boolean(onLoadMore && hasMore),
+    isLoadingMore: Boolean(isLoadingMore),
+    rootRef: scrollContainerRef,
+  });
 
   const { viewport, setViewport, animateTo } = useAnimatedViewport({
     start: root.startTime,
@@ -539,6 +569,7 @@ function NewTraceViewerContent({ trace }: NewTraceViewerProps): ReactNode {
         className="grid grid-rows-[1fr] h-full min-h-0 overflow-hidden relative bg-background-100"
       >
         <SplitPane
+          scrollContainerRef={scrollContainerRef}
           startHeader={
             <div className="bg-background-100 border-b border-gray-alpha-400 h-10 min-h-10 flex items-center pl-4 pr-2 gap-1.5">
               <Search className="w-3.5 h-3.5 shrink-0 text-gray-800" />
@@ -584,6 +615,14 @@ function NewTraceViewerContent({ trace }: NewTraceViewerProps): ReactNode {
               searchResult={searchResult}
               onSelectSpan={handleSelectSpan}
             />
+            <div ref={loadMoreSentinelRef} className="flex justify-center">
+              {isLoadingMore ? (
+                <div className="flex items-center justify-center gap-2 py-3 text-sm text-gray-800">
+                  <Spinner size={14} />
+                  <span>Loading spans…</span>
+                </div>
+              ) : null}
+            </div>
           </div>
           {/* biome-ignore lint/a11y/noStaticElementInteractions: timeline hover and wheel gestures are pointer-only annotations */}
           <div

@@ -14,11 +14,17 @@ const NewTraceViewer = ({
   run,
   events,
   sidebarData,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
   loading = false,
 }: {
   run: WorkflowRun;
   events: Event[];
   sidebarData: SidebarDataContextValue;
+  onLoadMore?: () => void | Promise<void>;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
   loading?: boolean;
 }) => {
   const traceWithMeta: TraceWithMeta | undefined = useMemo(() => {
@@ -37,7 +43,12 @@ const NewTraceViewer = ({
   return (
     <SidebarDataProvider value={sidebarData}>
       <div className="relative w-full h-full flex">
-        <NewTraceViewerComponent trace={trace as Trace} />
+        <NewTraceViewerComponent
+          trace={trace as Trace}
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+        />
       </div>
     </SidebarDataProvider>
   );
