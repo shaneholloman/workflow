@@ -29,7 +29,7 @@ import type {
   World,
 } from '@workflow/world';
 import { createWorld as createLocalWorld } from '@workflow/world-local';
-import { createVercelWorld } from '@workflow/world-vercel';
+import { createWorld as createVercelBackendWorld } from '@workflow/world-vercel';
 import type { HookListItem, HookTokenResult } from '~/lib/types';
 
 /**
@@ -436,7 +436,7 @@ async function getWorldFromEnv(userEnvMap: EnvMap): Promise<World> {
   // and we instantiate the world per-user directly to avoid having to set
   // process.env.
   if (isVercelWorld) {
-    return createVercelWorld({
+    return createVercelBackendWorld({
       token:
         userEnvMap.WORKFLOW_VERCEL_AUTH_TOKEN ||
         process.env.WORKFLOW_VERCEL_AUTH_TOKEN,
