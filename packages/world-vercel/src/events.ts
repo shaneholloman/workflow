@@ -195,6 +195,9 @@ interface SplitEventData {
     ttfs?: number;
     /** Client-measured step-to-step overhead ms (step_completed / step_failed). */
     stso?: number;
+    /** Progress counters taken when the STSO gap began. */
+    stepCount?: number;
+    eventCount?: number;
     /** Runtime optimizations active for the ttfs/stso measurement. */
     optimizations?: string[];
   };
@@ -228,6 +231,8 @@ type MetaSourceField =
   | 'allowReservedAttributes'
   | 'ttfs'
   | 'stso'
+  | 'stepCount'
+  | 'eventCount'
   | 'optimizations';
 
 /**
@@ -367,6 +372,20 @@ export function splitEventDataForV4(data: AnyEventRequest): SplitEventData {
   }
   if (typeof eventData.stso === 'number') {
     meta.stso = eventData.stso;
+  }
+  if (
+    typeof eventData.stepCount === 'number' &&
+    Number.isSafeInteger(eventData.stepCount) &&
+    eventData.stepCount > 0
+  ) {
+    meta.stepCount = eventData.stepCount;
+  }
+  if (
+    typeof eventData.eventCount === 'number' &&
+    Number.isSafeInteger(eventData.eventCount) &&
+    eventData.eventCount > 0
+  ) {
+    meta.eventCount = eventData.eventCount;
   }
   if (
     Array.isArray(eventData.optimizations) &&
